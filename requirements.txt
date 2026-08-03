@@ -1,0 +1,4 @@
+numpy>=1.24
+torch>=2.0
+stim>=1.14
+pymatching>=2.2
