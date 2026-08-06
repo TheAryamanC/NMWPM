@@ -405,7 +405,7 @@ class ToricCode(CSSCode):
                         self.pair_crossings[i, j, l] = self.logical_supports[g][l, qs].sum() % 2
         self.build_structures()
 
-    def path(self, stabilizer_type, source_col, target_col, source_row, target_row, h, v):
+    def path(self, stabilizer_type, source_col, source_row, target_col, target_row, h, v):
         L, qs = self.L, []
         dx = (target_col - source_col) % L
         sx, nx = (1, dx) if dx <= L - dx else (-1, L - dx)
