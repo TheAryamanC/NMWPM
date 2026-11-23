@@ -21,6 +21,11 @@ class ToricCode(CSSCode):
         self.distance = lattice_size
         self.number_of_qubits = 2 * lattice_size * lattice_size
 
+        # now we need a way of navigating to a specific qubit
+        # I am going to split by horizontal and vertical edges - that is the standard way to do this
+        horizontal_edge_index = lambda x, y: (y % lattice_size) * L + (x % lattice_size)
+        vertical_edge_index = lambda x, y: lattice_size * lattice_size + horizontal_edge_index(x, y)
+
 # In the rotated surface code, blocks are mapped into a square grid
 # Stabilizers in the middle watch 4 blocks, and ones on the edges watch 2 blocks
 class RotatedSurfaceCode(CSSCode):
@@ -35,3 +40,6 @@ class RotatedSurfaceCode(CSSCode):
     def __init__(self, lattice_size):
         self.distance = lattice_size
         self.number_of_qubits = lattice_size * lattice_size
+
+        # now we need a way of navigating to a specific qubit
+        qubit_index = lambda row, col: row * lattice_size + col
