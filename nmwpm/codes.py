@@ -11,6 +11,12 @@ class CSSCode:
     # we need some way of distinguishing between them
     has_boundary = False
 
+    # in both codes, we know which stabilizers watch which qubits, but we need to make this easy to do computation over
+    def build_stabilizer_matrix(self):
+        self.stabilizer_matrix = np.zeros((self.stabilizer_qubits, self.number_of_qubits), dtype=np.uint8)
+        for stabilizer_type, qubits in enumerate(self.stabilizer_qubits):
+            self.stabilizer_matrix[stabilizer_type, qubits] = 1
+
 # In the toric code, blocks on a grid are wrapper into a doughnut (hence toric)
 # Every stabilizer watches 4 blocks
 class ToricCode(CSSCode):
