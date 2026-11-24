@@ -87,6 +87,11 @@ class ToricCode(CSSCode):
         - there are L^2 intersections and L^2 squares -> these correspond to the 2(L^2) X and Z stabilizers
     """
     def __init__(self, lattice_size):
+        if not isinstance(lattice_size, int) or isinstance(lattice_size, bool):
+            raise TypeError("lattice_size must be an integer")
+        if lattice_size <= 1:
+            raise ValueError("lattice_size must be an integer greater than 1")
+            
         self.distance = lattice_size
         self.number_of_qubits = 2 * lattice_size * lattice_size
 
@@ -136,6 +141,11 @@ class RotatedSurfaceCode(CSSCode):
         - there are (L-1)^2 squares and 2(L-1) boundary edges -> these correspond to the locations of the (L^2)-1 X and Z alternating stabilizers
     """
     def __init__(self, lattice_size):
+        if not isinstance(lattice_size, int) or isinstance(lattice_size, bool):
+            raise TypeError("lattice_size must be an integer")
+        if lattice_size <= 1:
+            raise ValueError("lattice_size must be an integer greater than 1")
+            
         self.distance = lattice_size
         self.number_of_qubits = lattice_size * lattice_size
 
