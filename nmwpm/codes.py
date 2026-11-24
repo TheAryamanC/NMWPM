@@ -1,4 +1,5 @@
 import itertools
+import numpy as np
 
 # CSS codes are a family of codes
 # The codes we are interested in (toric & rotated surface) are members of this family - if you want to extend this project, start from here
@@ -39,6 +40,10 @@ class ToricCode(CSSCode):
                 self.stabilizer_qubits.append([horizontal_edge_index(x, y), horizontal_edge_index(x - 1, y), vertical_edge_index(x, y), vertical_edge_index(x, y - 1)] if stabilizer_type == 0 else [horizontal_edge_index(x, y), horizontal_edge_index(x, y + 1), vertical_edge_index(x, y), vertical_edge_index(x + 1, y)])
                 self.stabilizer_type.append(stabilizer_type)
                 self.stabilizer_coordinates.append((x, y))
+        self.stabilizer_coordinates = np.array(self.stabilizer_coordinates, float)
+
+        # euclidean distance to find distance from center
+        self.position = np.sqrt(((self.stabilizer_coordinates - lattice_size / 2) ** 2).sum(1, keepdims=True))
 
 # In the rotated surface code, blocks are mapped into a square grid
 # Stabilizers in the middle watch 4 blocks, and ones on the edges watch 2 blocks
@@ -71,3 +76,7 @@ class RotatedSurfaceCode(CSSCode):
                 self.stabilizer_qubits.append(qubits)
                 self.stabilizer_type.append(stabilizer_type)
                 self.stabilizer_coordinates.append([i + 0.5, j + 0.5])
+        self.stabilizer_coordinates = np.array(self.stabilizer_coordinates, float)
+
+        # calculate spatial center of mass
+        self.position = np.array([[np.mean([qubit // lattice_size for qubit in qubits]), np.mean([qubit % lattice_size for qubit in qubits])] for qubits in self.stabilizer_qubits])
