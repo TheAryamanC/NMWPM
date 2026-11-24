@@ -45,6 +45,15 @@ class ToricCode(CSSCode):
         # euclidean distance to find distance from center
         self.position = np.sqrt(((self.stabilizer_coordinates - lattice_size / 2) ** 2).sum(1, keepdims=True))
 
+        # there are some types of errors that can go undetected but cause a logical error
+        # in toric codes, those errors are ones that are closed horizontal and vertical loops of errors
+        self.logical_errors = np.zeros((2, 2, self.number_of_qubits), np.uint8)
+        for i in range(L):
+            self.logical_errors[0, 0, vertical_edge_index(i, 0)] = 1
+            self.logical_errors[1, 0, horizontal_edge_index(i, 0)] = 1
+            self.logical_errors[0, 1, horizontal_edge_index(0, i)] = 1
+            self.logical_errors[1, 1, vertical_edge_index(0, i)] = 1
+
 # In the rotated surface code, blocks are mapped into a square grid
 # Stabilizers in the middle watch 4 blocks, and ones on the edges watch 2 blocks
 class RotatedSurfaceCode(CSSCode):
@@ -80,3 +89,9 @@ class RotatedSurfaceCode(CSSCode):
 
         # calculate spatial center of mass
         self.position = np.array([[np.mean([qubit // lattice_size for qubit in qubits]), np.mean([qubit % lattice_size for qubit in qubits])] for qubits in self.stabilizer_qubits])
+
+        # there are some types of errors that can go undetected but cause a logical error
+        # in rotated surface codes, those errors are ones that go from boundary to boundary
+        self.logical_errors = np.zeros((2, 1, self.number_of_qubits), np.uint8)
+        self.logical_errors[0, 0, [qubit_index(row, 0) for row in range(lattice_size)]] = 1
+        self.logical_errors[0, 0, [qubit_index(0, column) for column in range(lattice_size)]] = 1
