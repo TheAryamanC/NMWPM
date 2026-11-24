@@ -62,20 +62,42 @@ class CSSCode:
         "pauli" # no Z errors
     )
 
-    def add_noise_to_circuit(self, probability, noise_model="depolarizing", bias=10.0, probability_x_error = 1 / 3, probability_y_error = 1 / 3, probability_z_error = 1 / 3):
+    def add_noise_to_circuit(self, probability_error, noise_model="depolarizing", bias=10.0, probability_x_error = 1 / 3, probability_y_error = 1 / 3, probability_z_error = 1 / 3):
         circuit = stim.Circuit()
         if noise == "depolarizing":
-            pass
+            circuit.append("DEPOLARIZE1", range(self.number_of_qubits), probability_error)
         elif noise == "biased":
-            pass
+            probability_x = probability_y = probability_error / (2.0 * (1.0 + bias))
+            probability_z = probability_error * bias / (1.0 + bias)
+            circuit.append("PAULI_CHANNEL_1", range(self.number_of_qubits), [px, py, pz])
         elif noise == "x_only":
-            pass
+            circuit.append("X_ERROR", range(self.number_of_qubits), probability_error)
         elif noise == "y_only":
-            pass
+            circuit.append("Y_ERROR", range(self.number_of_qubits), probability_error)
         else:
-            pass
-        
+            total = probability_x_error + probability_y_error + probability_z_error
+            circuit.append("PAULI_CHANNEL_1", range(self.n), [probability_error * probability_x_error / total, probability_error * probability_y_error / total, probability_error * probability_z_error / total])
         return circuit
+
+    # now let's simulate these errors
+    def simulate_errors_in_circuit(self, number_of_runs, probability_error, noise_model="depolarizing", seed=None, bias=10.0, probability_x_error = 1 / 3, probability_y_error = 1 / 3, probability_z_error = 1 / 3):
+        circuit = self.add_noise_to_circuit(probability_error, noise_model, bias, probability_x_error, probability_y_error, probability_z_error)
+        
+        # need to simulate errors then add this to the specific code
+        simulator = stim.FlipSimulator(batch_size=number_of_runs, num_qubits=self.number_of_qubits, disable_stabilizer_randomization=True, seed=seed)
+        simulator.do(circuit)
+        errors = simulator.peek_pauli_flips()
+        simulator.do(self.circuit)
+
+        # now we need to return the errors
+        syndrome = simulator.get_measurement_flips().T.astype(np.uint8)
+        x_errors = np.zeros((number_of_runs, self.number_of_qubits), np.uint8)
+        z_errors = np.zeros((number_of_runs, self.number_of_qubits), np.uint8)
+        for i, error in enumerate(errors):
+            x_error, z_error = error.to_numpy()
+            x_errors[i], z_errors[i] = x_error, z_error
+        
+        return x_errors, z_errors, syndrome
 
 # In the toric code, blocks on a grid are wrapper into a doughnut (hence toric)
 # Every stabilizer watches 4 blocks
@@ -91,7 +113,7 @@ class ToricCode(CSSCode):
             raise TypeError("lattice_size must be an integer")
         if lattice_size <= 1:
             raise ValueError("lattice_size must be an integer greater than 1")
-            
+
         self.distance = lattice_size
         self.number_of_qubits = 2 * lattice_size * lattice_size
 
