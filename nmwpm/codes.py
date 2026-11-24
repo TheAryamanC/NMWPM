@@ -13,9 +13,26 @@ class CSSCode:
 
     # in both codes, we know which stabilizers watch which qubits, but we need to make this easy to do computation over
     def build_stabilizer_matrix(self):
-        self.stabilizer_matrix = np.zeros((self.stabilizer_qubits, self.number_of_qubits), dtype=np.uint8)
+        self.stabilizer_matrix = np.zeros((len(self.stabilizer_qubits), self.number_of_qubits), dtype=np.uint8)
         for stabilizer_type, qubits in enumerate(self.stabilizer_qubits):
             self.stabilizer_matrix[stabilizer_type, qubits] = 1
+
+    # we also need to determine which stabilizers are neighboring each other
+    def build_adjacency_matrix(self):
+        self.number_of_stabilizers = len(self.stabilizer_qubits)
+        self.number_of_logical_errors = self.logical_errors.shape[1]
+    
+        self.number_of_nodes = self.number_of_stabilizers + (1 if self.has_boundary else 0)
+        self.adjacency_matrix = np.zeros((self.number_of_nodes, self.number_of_nodes), dtype=bool)
+
+        # using the stabilizer matrix, we can see if two stabilizers are neighbors
+        neighbors = (self.stabilizer_matrix.astype(np.int64) @ self.stabilizer_matrix.T.astype(np.int64)) > 0
+        np.fill_diagonal(neighbors, False)
+        self.adjacency_matrix[:self.number_of_stabilizers, :self.number_of_stabilizers] = neighbors
+
+        # on the rotated surface code, to make error strings always trigger 2 endpoints, we can create an "imaginary" stabilizer that neighbors every other boundary stabilizer, otherwise only 1 might be triggered
+        if self.has_boundary:
+            self.adjacency_matrix[self.number_of_stabilizers, :self.number_of_stabilizers] = self.adjacency_matrix[:self.number_of_stabilizers, self.number_of_stabilizers] = self.boundary_adjacent_stabilizers
 
 # In the toric code, blocks on a grid are wrapper into a doughnut (hence toric)
 # Every stabilizer watches 4 blocks
@@ -46,6 +63,7 @@ class ToricCode(CSSCode):
                 self.stabilizer_qubits.append([horizontal_edge_index(x, y), horizontal_edge_index(x - 1, y), vertical_edge_index(x, y), vertical_edge_index(x, y - 1)] if stabilizer_type == 0 else [horizontal_edge_index(x, y), horizontal_edge_index(x, y + 1), vertical_edge_index(x, y), vertical_edge_index(x + 1, y)])
                 self.stabilizer_type.append(stabilizer_type)
                 self.stabilizer_coordinates.append((x, y))
+        self.stabilizer_type = np.asarray(self.stabilizer_type, dtype=np.int64)
         self.stabilizer_coordinates = np.array(self.stabilizer_coordinates, float)
 
         # euclidean distance to find distance from center
@@ -101,3 +119,9 @@ class RotatedSurfaceCode(CSSCode):
         self.logical_errors = np.zeros((2, 1, self.number_of_qubits), np.uint8)
         self.logical_errors[0, 0, [qubit_index(row, 0) for row in range(lattice_size)]] = 1
         self.logical_errors[0, 0, [qubit_index(0, column) for column in range(lattice_size)]] = 1
+
+        # stabilizers are on the boundary iff one of its qubits are not watched by any other same-type stabilizer
+        watched_qubits = np.zeros((2, self.number_of_qubits), np.int64)
+        for stabilizer_type, qubits in zip(self.stabilizer_type, self.stabilizer_qubits):
+            watched_qubits[stabilizer_type, qubits] += 1
+        self.boundary_adjacent_stabilizers = np.array([bool((watched_qubits[stabilizer_type, qubits] == 1).any()) for stabilizer_type, qubits in zip(self.stabilizer_type, self.stabilizer_qubits)])
