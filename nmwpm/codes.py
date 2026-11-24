@@ -53,6 +53,30 @@ class CSSCode:
         self.build_adjacency_matrix()
         self.build_circuit()
 
+    # all these codes need some way of simulating different types of error models
+    NOISE_MODELS = (
+        "depolarizing", # X error, Z error, Y error (both X and Z together) equally likely
+        "biased", # Z errors far more likely
+        "x_only",
+        "y_only",
+        "pauli" # no Z errors
+    )
+
+    def add_noise_to_circuit(self, probability, noise_model="depolarizing", bias=10.0, probability_x_error = 1 / 3, probability_y_error = 1 / 3, probability_z_error = 1 / 3):
+        circuit = stim.Circuit()
+        if noise == "depolarizing":
+            pass
+        elif noise == "biased":
+            pass
+        elif noise == "x_only":
+            pass
+        elif noise == "y_only":
+            pass
+        else:
+            pass
+        
+        return circuit
+
 # In the toric code, blocks on a grid are wrapper into a doughnut (hence toric)
 # Every stabilizer watches 4 blocks
 class ToricCode(CSSCode):
