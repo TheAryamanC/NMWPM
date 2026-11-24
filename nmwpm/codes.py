@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import stim
 
 # CSS codes are a family of codes
 # The codes we are interested in (toric & rotated surface) are members of this family - if you want to extend this project, start from here
@@ -17,6 +18,11 @@ class CSSCode:
         for stabilizer_type, qubits in enumerate(self.stabilizer_qubits):
             self.stabilizer_matrix[stabilizer_type, qubits] = 1
 
+        self.qubit_to_stabilizer = [[[] for _ in range(self.number_of_qubits)], [[] for _ in range(self.number_of_qubits)]]
+        for stabilizer, qubits in enumerate(self.stabilizer_qubits):
+            for qubit in qubits:
+                self.qubit_to_stabilizer[self.stabilizer_type[stabilizer]][qubit].append(stabilizer)
+
     # we also need to determine which stabilizers are neighboring each other
     def build_adjacency_matrix(self):
         self.number_of_stabilizers = len(self.stabilizer_qubits)
@@ -33,6 +39,19 @@ class CSSCode:
         # on the rotated surface code, to make error strings always trigger 2 endpoints, we can create an "imaginary" stabilizer that neighbors every other boundary stabilizer, otherwise only 1 might be triggered
         if self.has_boundary:
             self.adjacency_matrix[self.number_of_stabilizers, :self.number_of_stabilizers] = self.adjacency_matrix[:self.number_of_stabilizers, self.number_of_stabilizers] = self.boundary_adjacent_stabilizers
+
+    # build program that Stim can use
+    def build_circuit(self):
+        lines = []
+        for stabilizer, qubits in enumerate(self.stabilizer_qubits):
+            pauli = "X" if self.stabilizer_type[stabilizer] == 0 else "Z"
+            lines.append("MPP " + "*".join(f"{pauli}{qubit}" for qubit in qubits))
+        self.circuit = stim.Circuit("\n".join(lines))
+
+    def build_structures(self):
+        self.build_stabilizer_matrix()
+        self.build_adjacency_matrix()
+        self.build_circuit()
 
 # In the toric code, blocks on a grid are wrapper into a doughnut (hence toric)
 # Every stabilizer watches 4 blocks
@@ -77,6 +96,9 @@ class ToricCode(CSSCode):
             self.logical_errors[1, 0, horizontal_edge_index(i, 0)] = 1
             self.logical_errors[0, 1, horizontal_edge_index(0, i)] = 1
             self.logical_errors[1, 1, vertical_edge_index(0, i)] = 1
+
+        # finally build shared structures
+        self.build_structures()
 
 # In the rotated surface code, blocks are mapped into a square grid
 # Stabilizers in the middle watch 4 blocks, and ones on the edges watch 2 blocks
@@ -125,3 +147,6 @@ class RotatedSurfaceCode(CSSCode):
         for stabilizer_type, qubits in zip(self.stabilizer_type, self.stabilizer_qubits):
             watched_qubits[stabilizer_type, qubits] += 1
         self.boundary_adjacent_stabilizers = np.array([bool((watched_qubits[stabilizer_type, qubits] == 1).any()) for stabilizer_type, qubits in zip(self.stabilizer_type, self.stabilizer_qubits)])
+
+        # finally build shared structures
+        self.build_structures()
