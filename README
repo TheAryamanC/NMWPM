@@ -1,1 +1,5 @@
 This repo contains my work for SPIE Quantum West. I am working on improving the accuracy of minimum-weight perfect matching using neural networks, for decoding errors in quantum computers.
+
+11/24:
+-So far, I've created the rotated surface and toric code interfaces that are needed.
+-Next is building the neural networks.
